@@ -14,13 +14,21 @@ class MetaSensor:
 
 
 @dataclass
+class MetaEventHandler:
+    eventhandler_script: str
+    name: str
+    config: dict
+
+
+@dataclass
 class Config:
     environment: str
     sensors: List[MetaSensor]
+    eventhandlers: List[MetaEventHandler]
 
 
 def load_config() -> Config:
-    config_file = os.getenv('TIDEPOD_CONFIG', 'config.json')
+    config_file = os.getenv('TIDEPOD_PI_CONFIG', 'config.json')
 
     if not os.path.isfile(config_file):
         raise FileNotFoundError()

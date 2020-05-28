@@ -30,9 +30,6 @@ def build_sensors() -> List[Sensor]:
         module = importlib.import_module(module_name)
         clazz = getattr(module, class_name)
 
-        if clazz is None:
-            raise TypeError(f'Could not find class for sensor_script {config.sensor_script}')
-
         sensor_config_clazz = clazz.__orig_bases__[0].__args__[0]
 
         sensor_config = dacite.from_dict(sensor_config_clazz, meta_sensor.config)

@@ -3,33 +3,16 @@ from typing import List, Callable, Dict
 
 from app.sensors.sensor import Sensor
 from app.sensors.sensor_factory import provide_sensors
+from app.eventhandlers import EventHandler
 
 
 class SensorManager(Thread):
 
-    def __init__(self, sensors: List[Sensor]):
+    def __init__(self, sensors: List[Sensor], eventhandlers: List[EventHandler]):
         super().__init__()
-        self._callbacks: List[Callable[[str, bool], None]] = list()
         self._sensors: List[Sensor] = sensors
-
-    def register_callback(self, callback: Callable[[str, bool], None]) -> None:
-        """
-        Register a new callback. This will get called when the sensor emits a new value.
-        If the callback is already registered, it will not be added again.
-        :param callback: A function that takes a bool as input. This value will be True if there is sensory input,
-            or False if it does not.
-        :return: None
-        """
-        if callback not in self._callbacks:
-            self._callbacks.append(callback)
-
-    def remove_callback(self, callback: Callable[[str, bool], None]) -> None:
-        """
-        Remove an existing callback
-        :param callback: A previously registered callback
-        :return: None
-        """
-        self._callbacks.remove(callback)
+        self._eventhandlers: List[EventHandler] = eventhandlers
+        self.running: bool = False
 
     def run(self) -> None:
         """
@@ -38,15 +21,18 @@ class SensorManager(Thread):
         notify all of the registered callbacks of the change.
         :return:
         """
+
+        self.running = True
+
         # Build a dictionary to track values.
         sensor_values: Dict[str, bool] = {sensor.name: sensor.is_active for sensor in self._sensors}
 
-        while True:
+        while self.running:
             for sensor in self._sensors:
                 sensor.poll_sensor()
                 previous_value = sensor_values[sensor.name]
                 current_value = sensor.is_active
                 if current_value != previous_value:
                     sensor_values[sensor.name] = current_value
-                    for callback in self._callbacks:
-                        callback(sensor.name, current_value)
+                    for eventhandler in self._eventhandlers:
+                        eventhandler.on_state_change(sensor.name, current_value)
